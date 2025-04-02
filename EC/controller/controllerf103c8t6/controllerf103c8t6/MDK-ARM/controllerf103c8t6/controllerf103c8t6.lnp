@@ -1,0 +1,28 @@
+--cpu Cortex-M3
+"controllerf103c8t6\startup_stm32f103xb.o"
+"controllerf103c8t6\main.o"
+"controllerf103c8t6\gpio.o"
+"controllerf103c8t6\adc.o"
+"controllerf103c8t6\dma.o"
+"controllerf103c8t6\usart.o"
+"controllerf103c8t6\stm32f1xx_it.o"
+"controllerf103c8t6\stm32f1xx_hal_msp.o"
+"controllerf103c8t6\stm32f1xx_hal_gpio_ex.o"
+"controllerf103c8t6\stm32f1xx_hal_adc.o"
+"controllerf103c8t6\stm32f1xx_hal_adc_ex.o"
+"controllerf103c8t6\stm32f1xx_hal.o"
+"controllerf103c8t6\stm32f1xx_hal_rcc.o"
+"controllerf103c8t6\stm32f1xx_hal_rcc_ex.o"
+"controllerf103c8t6\stm32f1xx_hal_gpio.o"
+"controllerf103c8t6\stm32f1xx_hal_dma.o"
+"controllerf103c8t6\stm32f1xx_hal_cortex.o"
+"controllerf103c8t6\stm32f1xx_hal_pwr.o"
+"controllerf103c8t6\stm32f1xx_hal_flash.o"
+"controllerf103c8t6\stm32f1xx_hal_flash_ex.o"
+"controllerf103c8t6\stm32f1xx_hal_exti.o"
+"controllerf103c8t6\stm32f1xx_hal_uart.o"
+"controllerf103c8t6\system_stm32f1xx.o"
+--library_type=microlib --strict --scatter "controllerf103c8t6\controllerf103c8t6.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list "controllerf103c8t6.map" -o controllerf103c8t6\controllerf103c8t6.axf
