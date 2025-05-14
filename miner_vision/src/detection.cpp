@@ -206,9 +206,9 @@ void MinerVision::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& r
             cv::putText(processed_image, ss.str(), cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
             
             // 打印到ROS日志
-            RCLCPP_INFO(this->get_logger(), "Chessboard pose - Position: [%.3f, %.3f, %.3f], Rotation: [%.1f, %.1f, %.1f]",
-                       tvec.at<double>(0), tvec.at<double>(1), tvec.at<double>(2),
-                       rad2deg(euler_angles[0]), rad2deg(euler_angles[1]), rad2deg(euler_angles[2]));
+            // RCLCPP_INFO(this->get_logger(), "Chessboard pose - Position: [%.3f, %.3f, %.3f], Rotation: [%.1f, %.1f, %.1f]",
+            //            tvec.at<double>(0), tvec.at<double>(1), tvec.at<double>(2),
+            //            rad2deg(euler_angles[0]), rad2deg(euler_angles[1]), rad2deg(euler_angles[2]));
 
             // 发布姿态信息
             Eigen::Matrix3d rotation_matrix;
@@ -225,6 +225,8 @@ void MinerVision::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& r
             pose_msg.orientation.w = quaternion.w();
             
             pose_pub_->publish(pose_msg);
+
+            has_chessboard_pose_ = true;
         }
 
         // 发布处理后的图像
@@ -243,7 +245,15 @@ void MinerVision::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& r
 
 void MinerVision::keyboardCallback(const std_msgs::msg::String::SharedPtr msg)
 {
-    if (msg->data == "1") {
+    RCLCPP_INFO(this->get_logger(),"enter");
+    RCLCPP_INFO(this->get_logger(),msg->data.c_str());
+    std::string data = msg->data;
+    std::cout<<"data:"<<data<<std::endl;
+    rclcpp::Duration du1(0.5,0);
+
+    if (data == "1") {
+        RCLCPP_INFO(this->get_logger(),"enter1");
+
         if (!has_chessboard_pose_) {
             RCLCPP_WARN(this->get_logger(), "No chessboard detected!");
             return;
@@ -253,15 +263,19 @@ void MinerVision::keyboardCallback(const std_msgs::msg::String::SharedPtr msg)
             geometry_msgs::msg::TransformStamped transform;
             try {
                 transform = tf_buffer_->lookupTransform(
-                    "base_link", 
-                    "end_link",
-                    this->get_clock()->now()
+                    "J1_1", 
+                    "J6_1",
+                    // this->get_clock()->now(),
+                    tf2::TimePointZero
+                    // this->get_clock()->now()
                     // ros::Duration(1.0)
                 );
             } catch (const tf2::TransformException &ex) {
                 RCLCPP_ERROR(this->get_logger(), "TF Error: %s", ex.what());
                 return;
             }
+
+            RCLCPP_INFO(this->get_logger(),"enter2");
             
             Eigen::Quaterniond quat(
                 transform.transform.rotation.w,
@@ -276,123 +290,159 @@ void MinerVision::keyboardCallback(const std_msgs::msg::String::SharedPtr msg)
                 transform.transform.translation.z
             );
 
+            RCLCPP_INFO(this->get_logger(),"enter3");
+
             cv::Mat cv_R_gripper2base, cv_t_gripper2base;
             cv::eigen2cv(R_gripper2base, cv_R_gripper2base);
             cv::eigen2cv(t_gripper2base, cv_t_gripper2base);
 
-            std::ofstream file("calibration_data.txt", std::ios::app);
-            if (file.is_open()) {
-                // 保存机械臂位姿
-                file << "R_gripper2base:\n";
-                for (int i = 0; i < 3; ++i) {
-                    for (int j = 0; j < 3; ++j) {
-                        file << cv_R_gripper2base.at<double>(i, j) << " ";
-                    }
-                    file << "\n";
-                }
-                file << "t_gripper2base:\n";
-                for (int i = 0; i < 3; ++i) {
-                    file << cv_t_gripper2base.at<double>(i) << " ";
-                }
-                file << "\n";
+            RCLCPP_INFO(this->get_logger(),"enter4");
 
-                // 保存标定板位姿
-                file << "R_target2cam:\n";
-                for (int i = 0; i < 3; ++i) {
-                    for (int j = 0; j < 3; ++j) {
-                        file << current_R_target2cam_.at<double>(i, j) << " ";
-                    }
-                    file << "\n";
-                }
-                file << "t_target2cam:\n";
-                for (int i = 0; i < 3; ++i) {
-                    file << current_t_target2cam_.at<double>(i) << " ";
-                }
-                file << "\n";
-                file.close();
-                RCLCPP_INFO(this->get_logger(), "Data saved successfully.");
+            std::cout << "R_gripper2base:" << std::endl;
+
+            // for (int i = 0; i < 3; ++i) {
+            //     for (int j = 0; j < 3; ++j) {
+            //         std::cout << cv_R_gripper2base.at<double>(i, j) << " ";
+            //     }
+            //     std::cout << std::endl;
+            // }
+            std::cout <<"w: "<< transform.transform.rotation.w << std::endl;
+            std::cout <<"x: "<< transform.transform.rotation.x << std::endl;
+            std::cout <<"y: "<< transform.transform.rotation.y << std::endl;
+            std::cout <<"z: "<< transform.transform.rotation.z << std::endl;
+
+            std::cout << "t_gripper2base:" << std::endl;
+
+            for (int i = 0; i < 3; ++i) {
+                std::cout << cv_t_gripper2base.at<double>(i) << " ";
             }
+            std::cout << std::endl;
+
+            // std::ofstream file("/home/wanggp/calibration_data.txt", std::ios::app);
+
+            // RCLCPP_INFO(this->get_logger(),"enter5");
+            // file.open("/home/wanggp/calibration_data.txt");
+            // std::cout<<"file_is_open"<<file.is_open()<<std::endl;
+
+        //     if (file.is_open()) {
+        //         // 保存机is_open械臂位姿
+        //         RCLCPP_INFO(this->get_logger(),"enter6");
+
+        //         file << "R_gripper2base:\n";
+
+        //         RCLCPP_INFO(this->get_logger(),"enter7");
+
+        //         for (int i = 0; i < 3; ++i) {
+        //             for (int j = 0; j < 3; ++j) {
+        //                 file << cv_R_gripper2base.at<double>(i, j) << " ";
+        //             }
+        //             file << "\n";
+        //         }
+        //         file << "t_gripper2base:\n";
+
+        //         for (int i = 0; i < 3; ++i) {
+        //             file << cv_t_gripper2base.at<double>(i) << " ";
+        //         }
+        //         file << "\n";
+
+        //         // 保存标定板位姿
+        //         file << "R_target2cam:\n";
+        //         for (int i = 0; i < 3; ++i) {
+        //             for (int j = 0; j < 3; ++j) {
+        //                 file << current_R_target2cam_.at<double>(i, j) << " ";
+        //             }
+        //             file << "\n";
+        //         }
+        //         file << "t_target2cam:\n";
+        //         for (int i = 0; i < 3; ++i) {
+        //             file << current_t_target2cam_.at<double>(i) << " ";
+        //         }
+        //         file << "\n";
+        //         file.close();
+        //         RCLCPP_INFO(this->get_logger(), "Data saved successfully.");
+        //     }
         } catch (const tf2::TransformException &ex) {
             RCLCPP_ERROR(this->get_logger(), "TF Error: %s", ex.what());
         }
         has_chessboard_pose_ = false;
 
-    } else if (msg->data == "2") {
-        std::vector<cv::Mat> R_gripper2base, t_gripper2base, R_target2cam, t_target2cam;
-        std::ifstream file("calibration_data.txt");
-        if (!file) {
-            RCLCPP_ERROR(this->get_logger(), "Failed to open data file!");
-            return;
-        }
+    } 
+    // else if (data == "2") {
+        // std::vector<cv::Mat> R_gripper2base, t_gripper2base, R_target2cam, t_target2cam;
+        // std::ifstream file("calibration_data.txt");
+        // if (!file) {
+        //     RCLCPP_ERROR(this->get_logger(), "Failed to open data file!");
+        //     return;
+        // }
 
-        std::string line;
-        cv::Mat temp_R, temp_t;
-        int row_cnt = 0;
-        std::string section;
+        // std::string line;
+        // cv::Mat temp_R, temp_t;
+        // int row_cnt = 0;
+        // std::string section;
 
-        while (std::getline(file, line)) {
-            if (line.find("R_gripper2base:") != std::string::npos) {
-                temp_R = cv::Mat(3, 3, CV_64F);
-                row_cnt = 0;
-                section = "R_gripper2base";
-            } else if (line.find("t_gripper2base:") != std::string::npos) {
-                temp_t = cv::Mat(3, 1, CV_64F);
-                section = "t_gripper2base";
-            } else if (line.find("R_target2cam:") != std::string::npos) {
-                temp_R = cv::Mat(3, 3, CV_64F);
-                row_cnt = 0;
-                section = "R_target2cam";
-            } else if (line.find("t_target2cam:") != std::string::npos) {
-                temp_t = cv::Mat(3, 1, CV_64F);
-                section = "t_target2cam";
-            } else {
-                std::istringstream iss(line);
-                if (section == "R_gripper2base" || section == "R_target2cam") {
-                    for (int j = 0; j < 3; ++j) {
-                        double val;
-                        iss >> val;
-                        temp_R.at<double>(row_cnt, j) = val;
-                    }
-                    if (++row_cnt == 3) {
-                        if (section == "R_gripper2base") R_gripper2base.push_back(temp_R.clone());
-                        else R_target2cam.push_back(temp_R.clone());
-                    }
-                } else if (section == "t_gripper2base" || section == "t_target2cam") {
-                    for (int j = 0; j < 3; ++j) {
-                        double val;
-                        iss >> val;
-                        temp_t.at<double>(j) = val;
-                    }
-                    if (section == "t_gripper2base") t_gripper2base.push_back(temp_t.clone());
-                    else t_target2cam.push_back(temp_t.clone());
-                }
-            }
-        }
-        file.close();
+        // while (std::getline(file, line)) {
+        //     if (line.find("R_gripper2base:") != std::string::npos) {
+        //         temp_R = cv::Mat(3, 3, CV_64F);
+        //         row_cnt = 0;
+        //         section = "R_gripper2base";
+        //     } else if (line.find("t_gripper2base:") != std::string::npos) {
+        //         temp_t = cv::Mat(3, 1, CV_64F);
+        //         section = "t_gripper2base";
+        //     } else if (line.find("R_target2cam:") != std::string::npos) {
+        //         temp_R = cv::Mat(3, 3, CV_64F);
+        //         row_cnt = 0;
+        //         section = "R_target2cam";
+        //     } else if (line.find("t_target2cam:") != std::string::npos) {
+        //         temp_t = cv::Mat(3, 1, CV_64F);
+        //         section = "t_target2cam";
+        //     } else {
+        //         std::istringstream iss(line);
+        //         if (section == "R_gripper2base" || section == "R_target2cam") {
+        //             for (int j = 0; j < 3; ++j) {
+        //                 double val;
+        //                 iss >> val;
+        //                 temp_R.at<double>(row_cnt, j) = val;
+        //             }
+        //             if (++row_cnt == 3) {
+        //                 if (section == "R_gripper2base") R_gripper2base.push_back(temp_R.clone());
+        //                 else R_target2cam.push_back(temp_R.clone());
+        //             }
+        //         } else if (section == "t_gripper2base" || section == "t_target2cam") {
+        //             for (int j = 0; j < 3; ++j) {
+        //                 double val;
+        //                 iss >> val;
+        //                 temp_t.at<double>(j) = val;
+        //             }
+        //             if (section == "t_gripper2base") t_gripper2base.push_back(temp_t.clone());
+        //             else t_target2cam.push_back(temp_t.clone());
+        //         }
+        //     }
+        // }
+        // file.close();
 
-        if (R_gripper2base.size() != t_gripper2base.size() || 
-            R_target2cam.size() != t_target2cam.size() ||
-            R_gripper2base.empty()) {
-            RCLCPP_ERROR(this->get_logger(), "Data inconsistent!");
-            return;
-        }
+        // if (R_gripper2base.size() != t_gripper2base.size() || 
+        //     R_target2cam.size() != t_target2cam.size() ||
+        //     R_gripper2base.empty()) {
+        //     RCLCPP_ERROR(this->get_logger(), "Data inconsistent!");
+        //     return;
+        // }
 
-        cv::Mat R_cam2gripper, t_cam2gripper;
-        cv::calibrateHandEye(R_gripper2base, t_gripper2base, 
-                            R_target2cam, t_target2cam,
-                            R_cam2gripper, t_cam2gripper,
-                            cv::CALIB_HAND_EYE_TSAI);
+        // cv::Mat R_cam2gripper, t_cam2gripper;
+        // cv::calibrateHandEye(R_gripper2base, t_gripper2base, 
+        //                     R_target2cam, t_target2cam,
+        //                     R_cam2gripper, t_cam2gripper,
+        //                     cv::CALIB_HAND_EYE_TSAI);
 
-        // RCLCPP_INFO(this->get_logger(), "Hand-Eye Calibration Result:");
-        // RCLCPP_INFO(this->get_logger(), "Rotation Matrix:\n%s", cv::format(R_cam2gripper, cv::Formatter::FMT_DEFAULT).c_str());
-        // RCLCPP_INFO(this->get_logger(), "Translation Vector:\n%s", cv::format(t_cam2gripper, cv::Formatter::FMT_DEFAULT).c_str());
-        std::cout << "Hand-Eye Calibration Result:" << std::endl;
-        std::cout << "Rotation Matrix:" << std::endl;
-        std::cout << cv::format(R_cam2gripper, cv::Formatter::FMT_DEFAULT) << std::endl;
-        std::cout << "Translation Vector:" << std::endl;
-        std::cout << cv::format(t_cam2gripper, cv::Formatter::FMT_DEFAULT) << std::endl;
+        // // RCLCPP_INFO(this->get_logger(), "Hand-Eye Calibration Result:");
+        // // RCLCPP_INFO(this->get_logger(), "Rotation Matrix:\n%s", cv::format(R_cam2gripper, cv::Formatter::FMT_DEFAULT).c_str());
+        // // RCLCPP_INFO(this->get_logger(), "Translation Vector:\n%s", cv::format(t_cam2gripper, cv::Formatter::FMT_DEFAULT).c_str());
+        // std::cout << "Hand-Eye Calibration Result:" << std::endl;
+        // std::cout << "Rotation Matrix:" << std::endl;
+        // std::cout << cv::format(R_cam2gripper, cv::Formatter::FMT_DEFAULT) << std::endl;
+        // std::cout << "Translation Vector:" << std::endl;
+        // std::cout << cv::format(t_cam2gripper, cv::Formatter::FMT_DEFAULT) << std::endl;
 
-    }
+    // }
 }
 
 int main(int argc, char *argv[])

@@ -17,7 +17,8 @@ def generate_launch_description():
     )
     detection = Node(
         package='miner_v',
-        executable='detection'
+        executable='detection',
+        output='screen'
     )
     return LaunchDescription([
         orbbec,
